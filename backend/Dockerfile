@@ -23,5 +23,5 @@ RUN chmod -R 777 storage bootstrap/cache
 # DEKLARASI PORT UNTUK BACK4APP
 EXPOSE 8000
 
-# Eksekusi migrasi otomatis & jalankan peladen
-CMD php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=8000
+# Eksekusi migrasi di latar belakang (&) agar server web langsung menyala merespons health-check
+CMD php artisan migrate --force & php artisan serve --host=0.0.0.0 --port=8000
