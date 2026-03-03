@@ -1,73 +1,111 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import api from "../../lib/api";
 
+/**
+ * LoginPage Component
+ * * Menangani proses otentikasi pengguna, verifikasi sesi aktif,
+ * dan pengalihan rute berdasarkan peran (admin, partner, customer).
+ */
 export default function LoginPage() {
   const router = useRouter();
+
+  // --- State Management ---
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
 
-  useEffect(() => {
-    const verifySession = async () => {
-      const token = localStorage.getItem("access_token");
-      if (token) {
-        try {
-          const response = await api.get("/user", {
-            headers: { Authorization: `Bearer ${token}` },
-          });
+  /**
+   * Helper untuk menentukan rute pengalihan berdasarkan peran pengguna.
+   * @param role - Peran yang didapat dari respons API (admin | partner | customer)
+   */
+  const getRedirectPath = (role: string): string => {
+    switch (role) {
+      case "admin":
+        return "/admin";
+      case "partner":
+        return "/partner";
+      default:
+        return "/dashboard"; // Default untuk role 'customer'
+    }
+  };
 
-          if (response.data.role === "admin") {
-            router.push("/admin");
-          } else {
-            router.push("/dashboard");
-          }
-          return;
-        } catch (err) {
-          localStorage.removeItem("access_token");
-        }
+  /**
+   * Memverifikasi keberadaan dan validitas sesi (token) yang tersimpan.
+   * Dipanggil saat komponen pertama kali dimuat (Initial Mount).
+   */
+  const verifySession = useCallback(async () => {
+    const token = localStorage.getItem("access_token");
+
+    if (token) {
+      try {
+        // Melakukan pengecekan validitas token ke endpoint /user
+        const response = await api.get("/user", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        // Jika token valid, langsung arahkan ke dashboard sesuai role
+        const path = getRedirectPath(response.data.role);
+        router.push(path);
+        return; // Menghentikan eksekusi jika sudah dialihkan
+      } catch (err) {
+        // Jika token tidak valid atau expired, bersihkan storage
+        localStorage.removeItem("access_token");
       }
-      setIsCheckingSession(false);
-    };
+    }
 
-    verifySession();
+    // Izinkan pengguna melihat form login jika tidak ada sesi valid
+    setIsCheckingSession(false);
   }, [router]);
 
+  useEffect(() => {
+    verifySession();
+  }, [verifySession]);
+
+  /**
+   * Menangani pengiriman formulir login (Submit Handler).
+   * @param e - React Form Event
+   */
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
 
     try {
+      // 1. Kirim permintaan otentikasi ke server
       const loginResponse = await api.post("/login", { email, password });
       const token = loginResponse.data.access_token;
+
+      // 2. Simpan token akses ke local storage
       localStorage.setItem("access_token", token);
 
+      // 3. Ambil profil pengguna untuk mendapatkan informasi role terbaru
       const userResponse = await api.get("/user", {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (userResponse.data.role === "admin") {
-        router.push("/admin");
-      } else {
-        router.push("/dashboard");
-      }
+      // 4. Arahkan pengguna berdasarkan peran yang tersimpan di basis data
+      const targetPath = getRedirectPath(userResponse.data.role);
+      router.push(targetPath);
     } catch (err: any) {
+      // Membersihkan token jika proses pengambilan profil gagal setelah login
       localStorage.removeItem("access_token");
-      if (err.response?.data?.message) {
-        setError(err.response.data.message);
-      } else {
-        setError("Kredensial tidak valid atau peladen tidak merespons.");
-      }
+
+      // Menangani pesan kesalahan dari server atau pesan default
+      const message =
+        err.response?.data?.message ||
+        "Kredensial tidak valid atau peladen tidak merespons.";
+      setError(message);
       setIsLoading(false);
     }
   };
 
+  // Menampilkan indikator pemuatan selama pengecekan sesi berlangsung
   if (isCheckingSession) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -88,6 +126,7 @@ export default function LoginPage() {
           </p>
         </div>
 
+        {/* Error Alert Display */}
         {error && (
           <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4 rounded-md">
             <p className="text-sm text-red-700 font-medium">{error}</p>

@@ -1,62 +1,96 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import api from "../../lib/api";
 
+/**
+ * RegisterPage Component
+ * Menangani pendaftaran pengguna baru untuk peran 'customer' dan 'partner'.
+ * Dilengkapi dengan proteksi sesi aktif dan validasi peran reaktif.
+ */
 export default function RegisterPage() {
   const router = useRouter();
+
+  // --- State Management ---
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
     password_confirmation: "",
-    role: "user", // Status bawaan ditetapkan sebagai pelanggan
+    role: "customer", // Default role disesuaikan dengan constraint Postgres
   });
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
 
-  useEffect(() => {
-    const verifySession = async () => {
-      const token = localStorage.getItem("access_token");
-      if (token) {
-        try {
-          const response = await api.get("/user", {
-            headers: { Authorization: `Bearer ${token}` },
-          });
+  /**
+   * Helper untuk menentukan rute pengalihan berdasarkan peran.
+   * @param role - String peran (admin | partner | customer)
+   */
+  const getRedirectPath = (role: string): string => {
+    if (role === "admin") return "/admin";
+    if (role === "partner") return "/partner";
+    return "/dashboard"; // Default untuk customer
+  };
 
-          if (response.data.role === "admin") {
-            router.push("/admin");
-          } else if (response.data.role === "partner") {
-            router.push("/partner");
-          } else {
-            router.push("/dashboard");
-          }
-          return;
-        } catch (err) {
-          localStorage.removeItem("access_token");
-        }
+  /**
+   * Memeriksa apakah pengguna sudah memiliki sesi aktif.
+   * Jika sesi valid ditemukan, pengguna akan dialihkan secara otomatis.
+   */
+  const verifySession = useCallback(async () => {
+    const token = localStorage.getItem("access_token");
+
+    if (token) {
+      try {
+        const response = await api.get("/user", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        // Menggunakan response.data.role sesuai struktur API terverifikasi
+        const path = getRedirectPath(response.data.role);
+        router.push(path);
+        return;
+      } catch (err) {
+        // Hapus token jika sudah tidak valid/expired di peladen
+        localStorage.removeItem("access_token");
       }
-      setIsCheckingSession(false);
-    };
+    }
 
-    verifySession();
+    setIsCheckingSession(false);
   }, [router]);
 
+  useEffect(() => {
+    verifySession();
+  }, [verifySession]);
+
+  /**
+   * Menangani perubahan nilai pada input teks.
+   * @param e - React Change Event
+   */
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.id]: e.target.value });
   };
 
+  /**
+   * Menangani perubahan peran melalui tombol radio visual.
+   * @param selectedRole - Nilai peran yang dipilih (customer | partner)
+   */
   const handleRoleChange = (selectedRole: string) => {
     setFormData({ ...formData, role: selectedRole });
   };
 
+  /**
+   * Menangani proses pendaftaran akun (Submit Handler).
+   * Meliputi validasi client-side sederhana dan sinkronisasi token.
+   * @param e - React Form Event
+   */
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
+    // Validasi dasar: Kesesuaian kata sandi
     if (formData.password !== formData.password_confirmation) {
       setError("Konfirmasi kata sandi tidak cocok.");
       return;
@@ -65,6 +99,7 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
+      // 1. Eksekusi permintaan pendaftaran ke API
       const response = await api.post("/register", {
         name: formData.name,
         email: formData.email,
@@ -73,25 +108,23 @@ export default function RegisterPage() {
         role: formData.role,
       });
 
+      // 2. Persistensi token akses yang dikembalikan peladen
       localStorage.setItem("access_token", response.data.access_token);
 
-      if (formData.role === "partner") {
-        router.push("/partner");
-      } else {
-        router.push("/dashboard");
-      }
+      // 3. Pengalihan rute berdasarkan input peran pengguna
+      const targetPath = getRedirectPath(formData.role);
+      router.push(targetPath);
     } catch (err: any) {
-      if (err.response?.data?.message) {
-        setError(err.response.data.message);
-      } else {
-        setError(
-          "Pendaftaran gagal. Periksa kembali data Anda atau koneksi peladen.",
-        );
-      }
+      // Menangani pesan ralat dari peladen (Laravel)
+      const message =
+        err.response?.data?.message ||
+        "Pendaftaran gagal. Periksa kembali data Anda atau koneksi peladen.";
+      setError(message);
       setIsLoading(false);
     }
   };
 
+  // State: Loading saat pengecekan sesi aktif
   if (isCheckingSession) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -112,6 +145,7 @@ export default function RegisterPage() {
           </p>
         </div>
 
+        {/* Display Alert Error */}
         {error && (
           <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4 rounded-md">
             <p className="text-sm text-red-700 font-medium">{error}</p>
@@ -120,7 +154,7 @@ export default function RegisterPage() {
 
         <form className="mt-8 space-y-6" onSubmit={handleRegister}>
           <div className="space-y-5">
-            {/* Seleksi Peran menggunakan Tombol Radio Visual */}
+            {/* Pemilihan Peran (Visual Radio Button) */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Jenis Akun
@@ -128,9 +162,9 @@ export default function RegisterPage() {
               <div className="flex gap-3">
                 <button
                   type="button"
-                  onClick={() => handleRoleChange("user")}
+                  onClick={() => handleRoleChange("customer")}
                   className={`flex-1 py-2.5 px-4 text-sm font-bold rounded-full border transition-all duration-200 focus:outline-none ${
-                    formData.role === "user"
+                    formData.role === "customer"
                       ? "bg-amber-500 text-white border-amber-500 shadow-md"
                       : "bg-white text-amber-500 border-amber-500 hover:bg-amber-50"
                   }`}
@@ -151,6 +185,7 @@ export default function RegisterPage() {
               </div>
             </div>
 
+            {/* Form Inputs */}
             <div>
               <label
                 htmlFor="name"
@@ -162,7 +197,7 @@ export default function RegisterPage() {
                 id="name"
                 type="text"
                 required
-                className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 sm:text-sm transition-colors"
+                className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 sm:text-sm transition-colors"
                 value={formData.name}
                 onChange={handleChange}
               />
@@ -178,7 +213,7 @@ export default function RegisterPage() {
                 id="email"
                 type="email"
                 required
-                className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 sm:text-sm transition-colors"
+                className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 sm:text-sm transition-colors"
                 value={formData.email}
                 onChange={handleChange}
               />
@@ -194,7 +229,7 @@ export default function RegisterPage() {
                 id="password"
                 type="password"
                 required
-                className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 sm:text-sm transition-colors"
+                className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 sm:text-sm transition-colors"
                 value={formData.password}
                 onChange={handleChange}
               />
@@ -210,7 +245,7 @@ export default function RegisterPage() {
                 id="password_confirmation"
                 type="password"
                 required
-                className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 sm:text-sm transition-colors"
+                className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 sm:text-sm transition-colors"
                 value={formData.password_confirmation}
                 onChange={handleChange}
               />

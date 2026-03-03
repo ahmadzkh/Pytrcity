@@ -16,10 +16,9 @@ export default function AdminUsersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Status awal diubah dari 'all' menjadi 'user' agar tabel langsung memuat data Pelanggan
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [roleTab, setRoleTab] = useState("user");
+  const [roleTab, setRoleTab] = useState("admin");
   const [searchInput, setSearchInput] = useState("");
   const [activeSearch, setActiveSearch] = useState("");
 
@@ -72,7 +71,7 @@ export default function AdminUsersPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-bold text-gray-800">Data Pengguna</h2>
+        <h1 className="text-2xl font-bold text-white-800">Data Pengguna</h1>
         <p className="text-sm text-gray-500">
           Kelola akses dan profil pengguna sistem
         </p>
@@ -88,10 +87,16 @@ export default function AdminUsersPage() {
             Administrator
           </button>
           <button
-            onClick={() => handleRoleChange("user")}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${roleTab === "user" ? "bg-white text-amber-600 shadow-sm border border-gray-200" : "text-gray-600 hover:text-gray-900"}`}
+            onClick={() => handleRoleChange("customer")}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${roleTab === "customer" ? "bg-white text-amber-600 shadow-sm border border-gray-200" : "text-gray-600 hover:text-gray-900"}`}
           >
             Pelanggan
+          </button>
+          <button
+            onClick={() => handleRoleChange("partner")}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${roleTab === "partner" ? "bg-white text-amber-600 shadow-sm border border-gray-200" : "text-gray-600 hover:text-gray-900"}`}
+          >
+            Mitra
           </button>
         </div>
 
@@ -106,7 +111,7 @@ export default function AdminUsersPage() {
               placeholder="Cari nama atau email..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+              className="w-full pl-10 pr-4 py-2 border-2 border-gray-300 text-black rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
             />
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <svg
@@ -197,7 +202,7 @@ export default function AdminUsersPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
-                        className={`px-2.5 py-1 text-xs font-semibold rounded-md ${user.role === "admin" ? "bg-amber-100 text-amber-800" : "bg-gray-100 text-gray-800"}`}
+                        className={`px-2.5 py-1 text-xs font-semibold rounded-md ${user.role === "admin" ? "bg-amber-100 text-amber-800" : user.role === "partner" ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800"}`}
                       >
                         {user.role.toUpperCase()}
                       </span>

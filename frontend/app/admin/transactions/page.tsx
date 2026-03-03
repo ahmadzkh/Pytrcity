@@ -91,23 +91,21 @@ export default function AdminTransactionsPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-xl font-bold text-gray-800">
-            Manajemen Transaksi
-          </h2>
+          <h2 className="text-2xl font-bold text-white">Manajemen Transaksi</h2>
           <p className="text-sm text-gray-500">
             Pantau seluruh aktivitas pembayaran sistem
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <label htmlFor="status" className="text-sm font-medium text-gray-600">
+          <label htmlFor="status" className="text-sm font-medium text-white">
             Filter Status:
           </label>
           <select
             id="status"
             value={statusFilter}
             onChange={handleFilterChange}
-            className="border border-gray-300 rounded-md text-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white"
+            className="border border-gray-300 rounded-md text-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white text-gray-700"
           >
             <option value="all">Semua Transaksi</option>
             <option value="paid">Selesai (Paid)</option>

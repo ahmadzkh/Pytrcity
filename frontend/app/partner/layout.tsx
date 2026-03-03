@@ -6,12 +6,12 @@ import { useEffect, useState, useCallback } from "react";
 import api from "@/lib/api";
 
 /**
- * CustomerLayout Component
- * Mengelola tata letak utama untuk area pelanggan (B2C).
- * Menyediakan proteksi rute berbasis peran (Role-Based Access Control).
- * Menyediakan fungsionalitas non-destructive redirection untuk menjaga sesi tetap aktif.
+ * PartnerLayout Component
+ * Mengelola tata letak utama khusus untuk entitas Mitra / Agen PPOB.
+ * Mengimplementasikan pengalihan rute non-destruktif untuk menjaga integritas sesi
+ * bagi pengguna dengan peran berbeda (Admin/Customer).
  */
-export default function CustomerLayout({
+export default function PartnerLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -20,12 +20,13 @@ export default function CustomerLayout({
   const router = useRouter();
 
   // --- State Management ---
-  const [userName, setUserName] = useState("Pelanggan");
+  const [userName, setUserName] = useState("Agen PPOB");
   const [isLoading, setIsLoading] = useState(true);
+  const [isAuthorized, setIsAuthorized] = useState(false);
 
   /**
-   * Mengambil dan menginjeksi skrip Snap Midtrans ke dalam DOM secara dinamis.
-   * Diperlukan untuk proses checkout di area pelanggan.
+   * Mengintegrasikan skrip Midtrans Snap secara dinamis.
+   * Diperlukan untuk fungsionalitas Top-Up Saldo dompet mitra.
    */
   const injectMidtransScript = useCallback(() => {
     const snapScript = "https://app.sandbox.midtrans.com/snap/snap.js";
@@ -41,109 +42,128 @@ export default function CustomerLayout({
   }, []);
 
   /**
-   * Melakukan verifikasi sesi pengguna dan validasi hak akses peran (Role).
-   * Menerapkan pengalihan rute non-destruktif jika peran tidak sesuai.
+   * Melakukan verifikasi otoritas akses khusus untuk peran 'partner'.
+   * Mengarahkan pengguna ke dasbor yang relevan tanpa menghapus token jika sesi masih valid.
    */
-  const verifySessionAndAccess = useCallback(async () => {
+  const verifyPartnerAccess = useCallback(async () => {
     const token = localStorage.getItem("access_token");
 
-    // 1. Cek keberadaan token secara client-side
+    // 1. Validasi keberadaan token di penyimpanan lokal
     if (!token) {
       router.push("/login");
       return;
     }
 
     try {
-      // 2. Validasi token ke peladen (Backend)
+      // 2. Permintaan data profil ke peladen backend
       const response = await api.get("/user", {
         headers: { Authorization: `Bearer ${token}` },
       });
 
+      // Jalur akses data diperbaiki sesuai struktur: response.data.role
       const userRole = response.data.role;
 
       /**
-       * 3. Logika Non-Destructive Redirection
-       * Jika pengguna memiliki sesi valid tetapi mencoba masuk ke rute Customer
-       * padahal perannya adalah Admin atau Partner, kembalikan ke "rumah" mereka.
+       * 3. Logika Pengalihan Non-Destruktif
+       * Memindahkan pengguna ke rute yang sesuai berdasarkan hak akses
+       * tanpa menghancurkan sesi (token) yang ada.
        */
-      if (userRole === "admin") {
-        router.push("/admin");
+      if (userRole !== "partner") {
+        if (userRole === "admin") {
+          router.push("/admin");
+        } else {
+          router.push("/dashboard"); // Rute untuk 'customer'
+        }
         return;
       }
 
-      if (userRole === "partner") {
-        router.push("/partner");
-        return;
-      }
-
-      // 4. Jika peran adalah 'customer', izinkan akses dan muat data profil
+      // 4. Inisialisasi status terotorisasi bagi mitra
       setUserName(response.data.name);
-      setIsLoading(false);
+      setIsAuthorized(true);
     } catch (err: any) {
       /**
-       * 5. Penanganan Galat Sesi
-       * Token hanya dihapus jika peladen mengembalikan status tidak terotorisasi (misal: 401).
-       * Hal ini menjamin token tidak hilang hanya karena kesalahan rute atau jaringan sementara.
+       * 5. Penanganan Galat Sesi Khusus
+       * Token hanya dihapus jika peladen secara eksplisit menolak kredensial (401).
        */
       if (err.response?.status === 401) {
         localStorage.removeItem("access_token");
       }
       router.push("/login");
+    } finally {
+      setIsLoading(false);
     }
   }, [router]);
 
   useEffect(() => {
     injectMidtransScript();
-    verifySessionAndAccess();
-  }, [injectMidtransScript, verifySessionAndAccess]);
+    verifyPartnerAccess();
+  }, [injectMidtransScript, verifyPartnerAccess]);
 
   /**
-   * Menghapus sesi pengguna dan mengarahkan kembali ke halaman login.
+   * Menghapus sesi aktif dan mengarahkan pengguna kembali ke portal login.
    */
   const handleLogout = () => {
-    localStorage.setItem("access_token", ""); // Opsi aman selain removeItem
     localStorage.removeItem("access_token");
     router.push("/login");
   };
 
-  // State: Tampilan indikator pemuatan selama verifikasi sesi
+  // State: Indikator Pemuatan Sesi
   if (isLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-4 border-amber-600"></div>
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-4 border-amber-600"></div>
+          <p className="text-gray-500 font-medium">
+            Memverifikasi Sesi Kemitraan...
+          </p>
+        </div>
       </div>
     );
   }
 
+  // Mencegah kebocoran UI sebelum otorisasi selesai
+  if (!isAuthorized) return null;
+
   return (
     <div className="flex h-screen bg-gray-50">
-      {/* Navigasi Samping (Sidebar) */}
+      {/* Sidebar Navigasi Agen */}
       <aside className="w-64 bg-white border-r border-gray-200 flex flex-col shadow-sm z-10">
         <div className="p-6 border-b border-gray-100">
           <h2 className="text-2xl font-extrabold text-gray-800 tracking-tight">
             Pytricity
+            <span className="text-amber-600 ml-1">Agen</span>
           </h2>
         </div>
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
           <Link
-            href="/dashboard"
+            href="/partner"
             className={`block px-4 py-3 rounded-lg transition-colors text-sm font-medium ${
-              pathname === "/dashboard"
+              pathname === "/partner"
                 ? "bg-amber-50 text-amber-700"
                 : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
             }`}
           >
-            Pembayaran Tagihan
+            Dasbor Kemitraan
           </Link>
           <Link
-            href="/transactions"
+            href="/partner/pos"
             className={`block px-4 py-3 rounded-lg transition-colors text-sm font-medium ${
-              pathname === "/transactions"
+              pathname === "/partner/pos"
                 ? "bg-amber-50 text-amber-700"
                 : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
             }`}
           >
-            Riwayat Transaksi
+            Kasir (POS) Transaksi
+          </Link>
+          <Link
+            href="/partner/history"
+            className={`block px-4 py-3 rounded-lg transition-colors text-sm font-medium ${
+              pathname === "/partner/history"
+                ? "bg-amber-50 text-amber-700"
+                : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+            }`}
+          >
+            Riwayat Penjualan
           </Link>
         </nav>
         <div className="p-4 border-t border-gray-100">
@@ -156,11 +176,11 @@ export default function CustomerLayout({
         </div>
       </aside>
 
-      {/* Area Konten Utama */}
+      {/* Konten Area Utama */}
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="h-16 bg-white border-b border-gray-200 flex items-center px-8 justify-between shadow-sm z-0">
           <h1 className="text-lg font-semibold text-gray-800">
-            Area Pelanggan
+            Pusat Agen PPOB
           </h1>
           <div className="flex items-center gap-3">
             <span className="text-sm font-medium text-gray-600">
