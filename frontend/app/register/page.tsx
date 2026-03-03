@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import api from "../../lib/api";
@@ -15,6 +15,32 @@ export default function RegisterPage() {
   });
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
+
+  useEffect(() => {
+    const verifySession = async () => {
+      const token = localStorage.getItem("access_token");
+      if (token) {
+        try {
+          const response = await api.get("/user", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          if (response.data.role === "admin") {
+            router.push("/admin");
+          } else {
+            router.push("/dashboard");
+          }
+          return;
+        } catch (err) {
+          localStorage.removeItem("access_token");
+        }
+      }
+      setIsCheckingSession(false);
+    };
+
+    verifySession();
+  }, [router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.id]: e.target.value });
@@ -39,23 +65,27 @@ export default function RegisterPage() {
         password_confirmation: formData.password_confirmation,
       });
 
-      // Simpan token otentikasi
       localStorage.setItem("access_token", response.data.access_token);
-
-      // Arahkan ke dasbor utama
       router.push("/dashboard");
     } catch (err: any) {
-      if (err.response && err.response.data && err.response.data.message) {
+      if (err.response?.data?.message) {
         setError(err.response.data.message);
       } else {
         setError(
           "Pendaftaran gagal. Periksa kembali data Anda atau koneksi peladen.",
         );
       }
-    } finally {
       setIsLoading(false);
     }
   };
+
+  if (isCheckingSession) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 sm:px-6 lg:px-8">
@@ -70,8 +100,8 @@ export default function RegisterPage() {
         </div>
 
         {error && (
-          <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
-            <p className="text-sm text-red-700">{error}</p>
+          <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4 rounded-md">
+            <p className="text-sm text-red-700 font-medium">{error}</p>
           </div>
         )}
 
@@ -80,7 +110,7 @@ export default function RegisterPage() {
             <div>
               <label
                 htmlFor="name"
-                className="block text-sm font-medium text-gray-700"
+                className="block text-sm font-semibold text-gray-700"
               >
                 Nama Lengkap
               </label>
@@ -88,7 +118,7 @@ export default function RegisterPage() {
                 id="name"
                 type="text"
                 required
-                className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
+                className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm transition-colors"
                 value={formData.name}
                 onChange={handleChange}
               />
@@ -96,7 +126,7 @@ export default function RegisterPage() {
             <div>
               <label
                 htmlFor="email"
-                className="block text-sm font-medium text-gray-700"
+                className="block text-sm font-semibold text-gray-700"
               >
                 Alamat Email
               </label>
@@ -104,7 +134,7 @@ export default function RegisterPage() {
                 id="email"
                 type="email"
                 required
-                className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
+                className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm transition-colors"
                 value={formData.email}
                 onChange={handleChange}
               />
@@ -112,7 +142,7 @@ export default function RegisterPage() {
             <div>
               <label
                 htmlFor="password"
-                className="block text-sm font-medium text-gray-700"
+                className="block text-sm font-semibold text-gray-700"
               >
                 Kata Sandi
               </label>
@@ -120,7 +150,7 @@ export default function RegisterPage() {
                 id="password"
                 type="password"
                 required
-                className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
+                className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm transition-colors"
                 value={formData.password}
                 onChange={handleChange}
               />
@@ -128,7 +158,7 @@ export default function RegisterPage() {
             <div>
               <label
                 htmlFor="password_confirmation"
-                className="block text-sm font-medium text-gray-700"
+                className="block text-sm font-semibold text-gray-700"
               >
                 Konfirmasi Kata Sandi
               </label>
@@ -136,7 +166,7 @@ export default function RegisterPage() {
                 id="password_confirmation"
                 type="password"
                 required
-                className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
+                className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm transition-colors"
                 value={formData.password_confirmation}
                 onChange={handleChange}
               />
@@ -147,7 +177,7 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className={`group relative w-full flex justify-center py-2.5 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors ${isLoading ? "opacity-70 cursor-not-allowed" : ""}`}
+              className={`group relative w-full flex justify-center py-2.5 px-4 border border-transparent text-sm font-bold rounded-md text-white bg-amber-600 hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-colors ${isLoading ? "opacity-70 cursor-not-allowed" : ""}`}
             >
               {isLoading ? "Memproses Data..." : "Daftar Sekarang"}
             </button>
@@ -159,7 +189,7 @@ export default function RegisterPage() {
             Sudah memiliki akun?{" "}
             <Link
               href="/login"
-              className="font-medium text-emerald-600 hover:text-emerald-500 transition-colors"
+              className="font-semibold text-amber-600 hover:text-amber-700 transition-colors"
             >
               Masuk di sini
             </Link>

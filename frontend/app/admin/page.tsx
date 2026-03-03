@@ -45,18 +45,18 @@ export default function AdminDashboardPage() {
   const getStatusBadge = (status: string) => {
     if (status === "paid")
       return (
-        <span className="px-2.5 py-1 text-xs font-semibold rounded-md bg-green-100 text-green-800">
+        <span className="px-2.5 py-1 text-xs font-semibold rounded-md bg-green-500/20 text-green-400 border border-green-500/30">
           Selesai
         </span>
       );
     if (status === "pending")
       return (
-        <span className="px-2.5 py-1 text-xs font-semibold rounded-md bg-amber-100 text-amber-800">
+        <span className="px-2.5 py-1 text-xs font-semibold rounded-md bg-amber-500/20 text-amber-400 border border-amber-500/30">
           Menunggu
         </span>
       );
     return (
-      <span className="px-2.5 py-1 text-xs font-semibold rounded-md bg-red-100 text-red-800">
+      <span className="px-2.5 py-1 text-xs font-semibold rounded-md bg-red-500/20 text-red-400 border border-red-500/30">
         Gagal
       </span>
     );
@@ -72,7 +72,7 @@ export default function AdminDashboardPage() {
 
   if (error) {
     return (
-      <div className="p-4 bg-red-50 text-red-600 rounded-lg font-medium">
+      <div className="p-4 bg-red-900/50 text-red-400 border border-red-800 rounded-lg font-medium">
         {error}
       </div>
     );
@@ -81,71 +81,71 @@ export default function AdminDashboardPage() {
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-          <p className="text-sm font-medium text-gray-500">Total Pendapatan</p>
-          <p className="mt-3 text-3xl font-bold text-gray-900">
+        <div className="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-sm">
+          <p className="text-sm font-medium text-gray-400">Total Pendapatan</p>
+          <p className="mt-3 text-3xl font-bold text-white">
             Rp {data?.stats.revenue.toLocaleString("id-ID")}
           </p>
         </div>
-        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-          <p className="text-sm font-medium text-gray-500">
+        <div className="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-sm">
+          <p className="text-sm font-medium text-gray-400">
             Transaksi Berhasil
           </p>
-          <p className="mt-3 text-3xl font-bold text-gray-900">
+          <p className="mt-3 text-3xl font-bold text-white">
             {data?.stats.success_count}
           </p>
         </div>
-        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-          <p className="text-sm font-medium text-gray-500">
+        <div className="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-sm">
+          <p className="text-sm font-medium text-gray-400">
             Pengguna Terdaftar
           </p>
-          <p className="mt-3 text-3xl font-bold text-gray-900">
+          <p className="mt-3 text-3xl font-bold text-white">
             {data?.stats.user_count}
           </p>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-          <h3 className="text-lg font-bold text-gray-800">Transaksi Terbaru</h3>
+      <div className="bg-gray-800 rounded-xl border border-gray-700 shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-gray-700 flex justify-between items-center">
+          <h3 className="text-lg font-bold text-white">Transaksi Terbaru</h3>
         </div>
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-100">
-            <thead className="bg-gray-50/50">
+          <table className="min-w-full divide-y divide-gray-700">
+            <thead className="bg-gray-900/50">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">
                   ID Transaksi
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">
                   Pengguna
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">
                   No. Pelanggan
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">
                   Nominal
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-wider">
                   Status
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-100">
+            <tbody className="bg-gray-800 divide-y divide-gray-700">
               {data?.recent_transactions.map((trx) => (
                 <tr
                   key={trx.id}
-                  className="hover:bg-amber-50/30 transition-colors"
+                  className="hover:bg-gray-700/50 transition-colors"
                 >
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
                     {trx.id}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
                     {trx.user}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
                     {trx.customer_number}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-white font-semibold">
                     Rp {trx.amount.toLocaleString("id-ID")}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
