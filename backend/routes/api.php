@@ -3,11 +3,17 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\PpobController; // Tambahkan baris ini
+use App\Http\Middleware\IsAdmin;
+use App\Http\Controllers\AdminController;
+use App\Http\Controllers\PpobController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/midtrans/callback', [PpobController::class, 'paymentCallback']);
+
+Route::middleware(['auth:sanctum', IsAdmin::class])->group(function () {
+    Route::get('/admin/dashboard', [AdminController::class, 'getDashboardStats']);
+});
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
