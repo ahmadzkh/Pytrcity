@@ -12,6 +12,7 @@ export default function RegisterPage() {
     email: "",
     password: "",
     password_confirmation: "",
+    role: "user", // Status bawaan ditetapkan sebagai pelanggan
   });
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -28,6 +29,8 @@ export default function RegisterPage() {
 
           if (response.data.role === "admin") {
             router.push("/admin");
+          } else if (response.data.role === "partner") {
+            router.push("/partner");
           } else {
             router.push("/dashboard");
           }
@@ -44,6 +47,10 @@ export default function RegisterPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.id]: e.target.value });
+  };
+
+  const handleRoleChange = (selectedRole: string) => {
+    setFormData({ ...formData, role: selectedRole });
   };
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -63,10 +70,16 @@ export default function RegisterPage() {
         email: formData.email,
         password: formData.password,
         password_confirmation: formData.password_confirmation,
+        role: formData.role,
       });
 
       localStorage.setItem("access_token", response.data.access_token);
-      router.push("/dashboard");
+
+      if (formData.role === "partner") {
+        router.push("/partner");
+      } else {
+        router.push("/dashboard");
+      }
     } catch (err: any) {
       if (err.response?.data?.message) {
         setError(err.response.data.message);
@@ -95,7 +108,7 @@ export default function RegisterPage() {
             Buat Akun Baru
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Mulai kelola tagihan Anda dengan Pytricity
+            Mulai kelola transaksi Anda dengan Pytricity
           </p>
         </div>
 
@@ -106,7 +119,38 @@ export default function RegisterPage() {
         )}
 
         <form className="mt-8 space-y-6" onSubmit={handleRegister}>
-          <div className="space-y-4">
+          <div className="space-y-5">
+            {/* Seleksi Peran menggunakan Tombol Radio Visual */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Jenis Akun
+              </label>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => handleRoleChange("user")}
+                  className={`flex-1 py-2.5 px-4 text-sm font-bold rounded-full border transition-all duration-200 focus:outline-none ${
+                    formData.role === "user"
+                      ? "bg-amber-500 text-white border-amber-500 shadow-md"
+                      : "bg-white text-amber-500 border-amber-500 hover:bg-amber-50"
+                  }`}
+                >
+                  Pelanggan
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleRoleChange("partner")}
+                  className={`flex-1 py-2.5 px-4 text-sm font-bold rounded-full border transition-all duration-200 focus:outline-none ${
+                    formData.role === "partner"
+                      ? "bg-amber-500 text-white border-amber-500 shadow-md"
+                      : "bg-white text-amber-500 border-amber-500 hover:bg-amber-50"
+                  }`}
+                >
+                  Mitra / Agen
+                </button>
+              </div>
+            </div>
+
             <div>
               <label
                 htmlFor="name"
@@ -118,7 +162,7 @@ export default function RegisterPage() {
                 id="name"
                 type="text"
                 required
-                className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm transition-colors"
+                className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 sm:text-sm transition-colors"
                 value={formData.name}
                 onChange={handleChange}
               />
@@ -134,7 +178,7 @@ export default function RegisterPage() {
                 id="email"
                 type="email"
                 required
-                className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm transition-colors"
+                className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 sm:text-sm transition-colors"
                 value={formData.email}
                 onChange={handleChange}
               />
@@ -150,7 +194,7 @@ export default function RegisterPage() {
                 id="password"
                 type="password"
                 required
-                className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm transition-colors"
+                className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 sm:text-sm transition-colors"
                 value={formData.password}
                 onChange={handleChange}
               />
@@ -166,7 +210,7 @@ export default function RegisterPage() {
                 id="password_confirmation"
                 type="password"
                 required
-                className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-amber-500 focus:border-amber-500 sm:text-sm transition-colors"
+                className="mt-1 appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 sm:text-sm transition-colors"
                 value={formData.password_confirmation}
                 onChange={handleChange}
               />
@@ -177,14 +221,14 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className={`group relative w-full flex justify-center py-2.5 px-4 border border-transparent text-sm font-bold rounded-md text-white bg-amber-600 hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-colors ${isLoading ? "opacity-70 cursor-not-allowed" : ""}`}
+              className={`group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-bold rounded-md text-white bg-amber-500 hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-colors shadow-sm ${isLoading ? "opacity-70 cursor-not-allowed" : ""}`}
             >
               {isLoading ? "Memproses Data..." : "Daftar Sekarang"}
             </button>
           </div>
         </form>
 
-        <div className="text-center mt-4">
+        <div className="text-center mt-6">
           <p className="text-sm text-gray-600">
             Sudah memiliki akun?{" "}
             <Link
